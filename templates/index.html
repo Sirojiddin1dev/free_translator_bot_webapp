@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WebApp Tarjimon</title>
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    :root{
+      --bg: #0f1724;
+      --card: #0b1220;
+      --accent: #3b82f6;
+      --muted: #94a3b8;
+      --white: #e6eef8;
+      --glass: rgba(255,255,255,0.03);
+    }
+    body{
+      margin:0;
+      font-family: Inter, Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg,#071022 0%, #07182a 100%);
+      color:var(--white);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:18px;
+    }
+    .container{
+      max-width:720px;
+      margin:0 auto;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px;
+      padding:16px;
+      box-shadow: 0 6px 20px rgba(2,6,23,0.6);
+    }
+    h1{
+      margin:0 0 12px 0;
+      font-size:20px;
+      letter-spacing:0.2px;
+    }
+    .row{
+      display:flex;
+      gap:10px;
+      margin-bottom:10px;
+      align-items:center;
+    }
+    select, input[type="text"], textarea{
+      width:100%;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.04);
+      background:var(--glass);
+      color:var(--white);
+      outline:none;
+      font-size:15px;
+    }
+    textarea{ min-height:100px; resize:vertical; }
+    .controls{
+      display:flex;
+      gap:10px;
+      margin-top:10px;
+    }
+    .btn{
+      padding:10px 14px;
+      border-radius:10px;
+      border:none;
+      cursor:pointer;
+      font-weight:600;
+      background:var(--accent);
+      color:white;
+      flex:1;
+    }
+    .btn.secondary{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.06);
+      color:var(--white);
+    }
+    .result{
+      margin-top:12px;
+      padding:12px;
+      border-radius:10px;
+      background: rgba(255,255,255,0.02);
+      color:var(--white);
+      min-height:48px;
+      font-size:15px;
+    }
+    .small{
+      color:var(--muted);
+      font-size:13px;
+    }
+    .top-row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-bottom:12px;
+    }
+    .lang-pair { display:flex; gap:8px; align-items:center; }
+    .swap{
+      background: rgba(255,255,255,0.03);
+      padding:6px 8px;
+      border-radius:8px;
+      cursor:pointer;
+      border:1px solid rgba(255,255,255,0.03);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="top-row">
+        <h1>🌐 WebApp Tarjimon</h1>
+        <div style="margin-left:auto" class="small" id="user-info">...</div>
+      </div>
+
+      <div class="small" style="margin-bottom:8px">
+        <strong>Kirish:</strong> matn kiriting — sahifada tarjima natijasi chiqadi va kerak bo‘lsa botga yuborishingiz mumkin.
+      </div>
+
+      <div class="row">
+        <div style="flex:1">
+          <label class="small">From</label>
+          <select id="src">
+            <option value="auto">Auto (aniqlash)</option>
+            <option value="uz">Uzbek (uz)</option>
+            <option value="ru">Russian (ru)</option>
+            <option value="en">English (en)</option>
+            <option value="tr">Turkish (tr)</option>
+            <option value="ar">Arabic (ar)</option>
+            <!-- Qo'shimcha tillar kerak bo'lsa qo'shing -->
+          </select>
+        </div>
+
+        <div class="lang-pair">
+          <div class="swap" id="swapBtn" title="Swap languages">⇄</div>
+        </div>
+
+        <div style="flex:1">
+          <label class="small">To</label>
+          <select id="dest">
+            <option value="uz">Uzbek (uz)</option>
+            <option value="ru">Russian (ru)</option>
+            <option value="en" selected>English (en)</option>
+            <option value="tr">Turkish (tr)</option>
+            <option value="ar">Arabic (ar)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:8px">
+        <textarea id="text" placeholder="Matn kiriting..."></textarea>
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="translateBtn">Tarjima qil</button>
+        <button class="btn secondary" id="clearBtn">Tozalash</button>
+      </div>
+
+      <div class="result" id="result">Tarjima natijasi shu yerda ko‘rinadi.</div>
+
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="btn secondary" id="sendToBotBtn" style="flex:0 0 45%;">Botga yuborish</button>
+        <button class="btn" id="copyBtn" style="flex:1 1 auto;">Natijani nusxalash</button>
+      </div>
+
+      <p class="small" style="margin-top:10px;">WebApp orqali yuborish bosilganda botga matn qaytadi va chatda ko‘rsatiladi.</p>
+    </div>
+  </div>
+
+  <script>
+    // Telegram WebApp obyekti
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.expand(); // kerak bo'lsa sahifani kengaytiradi
+      const u = tg.initDataUnsafe?.user;
+      if (u) {
+        const name = (u.first_name || "") + (u.last_name ? (" " + u.last_name) : "");
+        document.getElementById("user-info").innerText = name || "Foydalanuvchi";
+      } else {
+        document.getElementById("user-info").innerText = "Foydalanuvchi";
+      }
+    } else {
+      document.getElementById("user-info").innerText = "Telegram WebApp yo'q";
+    }
+
+    // elementlar
+    const srcEl = document.getElementById("src");
+    const destEl = document.getElementById("dest");
+    const textEl = document.getElementById("text");
+    const translateBtn = document.getElementById("translateBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const resultEl = document.getElementById("result");
+    const sendBtn = document.getElementById("sendToBotBtn");
+    const copyBtn = document.getElementById("copyBtn");
+    const swapBtn = document.getElementById("swapBtn");
+
+    let lastTranslated = "";
+
+    // util: show message briefly
+    function toast(msg){
+      const prev = document.getElementById("_webapp_toast");
+      if(prev) prev.remove();
+      const d = document.createElement("div");
+      d.id = "_webapp_toast";
+      d.style.position = "fixed";
+      d.style.left = "50%";
+      d.style.top = "12px";
+      d.style.transform = "translateX(-50%)";
+      d.style.background = "rgba(0,0,0,0.6)";
+      d.style.color = "white";
+      d.style.padding = "8px 12px";
+      d.style.borderRadius = "8px";
+      d.style.zIndex = 9999;
+      d.innerText = msg;
+      document.body.appendChild(d);
+      setTimeout(()=> d.remove(), 1600);
+    }
+
+    // Tarjima qilish
+    async function translateNow(){
+      const text = textEl.value.trim();
+      if(!text){
+        toast("Iltimos, matn kiriting");
+        return;
+      }
+      const src = srcEl.value;
+      const dest = destEl.value;
+      resultEl.innerText = "Tarjima qilinmoqda...";
+      try{
+        const resp = await fetch(`/api/translate/?text=${encodeURIComponent(text)}&src=${encodeURIComponent(src)}&dest=${encodeURIComponent(dest)}`);
+        if(!resp.ok){
+          const err = await resp.json().catch(()=>({error: "Xato"}));
+          resultEl.innerText = "Xato: " + (err.error || resp.statusText);
+          return;
+        }
+        const json = await resp.json();
+        lastTranslated = json.translated || "";
+        const detected = json.detected_lang ? ` (aniqlangan til: ${json.detected_lang})` : "";
+        resultEl.innerText = lastTranslated + (detected ? "\n\n" + detected : "");
+      }catch(e){
+        resultEl.innerText = "So'rov yuborishda xato: " + e.message;
+      }
+    }
+
+    translateBtn.addEventListener("click", translateNow);
+    clearBtn.addEventListener("click", ()=>{
+      textEl.value = "";
+      resultEl.innerText = "Tarjima natijasi shu yerda ko‘rinadi.";
+      lastTranslated = "";
+    });
+
+    copyBtn.addEventListener("click", async ()=>{
+      if(!lastTranslated){
+        toast("Tarjima hali yo'q");
+        return;
+      }
+      try{
+        await navigator.clipboard.writeText(lastTranslated);
+        toast("Nusxalandi");
+      }catch(e){
+        toast("Nusxalash imkoni yo'q");
+      }
+    });
+
+    sendBtn.addEventListener("click", ()=>{
+      if(!tg){
+        toast("Bu WebApp Telegram ichida ochilishi kerak");
+        return;
+      }
+      if(!lastTranslated){
+        toast("Avval tarjima qiling");
+        return;
+      }
+      // WebAppdan botga yuborish (string ko'rinishida)
+      tg.sendData(JSON.stringify({
+        type: "webapp_translation",
+        text: lastTranslated,
+        src: srcEl.value,
+        dest: destEl.value
+      }));
+      toast("Botga yuborildi");
+      // kerak bo'lsa yopish:
+      // tg.close();
+    });
+
+    // swap source/dest
+    swapBtn.addEventListener("click", ()=>{
+      const a = srcEl.value;
+      const b = destEl.value;
+      // agar src auto bo'lsa auto o'tkazmagan ma'qul
+      if(a !== "auto"){
+        srcEl.value = b;
+        destEl.value = a;
+      } else {
+        // agar src auto bo'lsa src -> dest, dest -> auto
+        srcEl.value = b;
+        destEl.value = "auto";
+      }
+    });
+
+    // Quick translate on Enter in textarea (Ctrl+Enter to new line)
+    textEl.addEventListener("keydown", (e)=>{
+      if(e.key === "Enter" && !e.shiftKey){
+        e.preventDefault();
+        translateNow();
+      }
+    });
+  </script>
+</body>
+</html>
