@@ -38,17 +38,18 @@ def translate_api(request):
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from bot.bot import process_update
 
+@method_decorator(csrf_exempt, name='dispatch')
+async def telegram_webhook(request):
 
-@csrf_exempt
-def telegram_webhook(request):
     if request.method == "POST":
         body = json.loads(request.body.decode("utf-8"))
 
-        # Aiogram update yuborish
-        asyncio.run(process_update(body))
+        # Aiogram update accept
+        await process_update(body)
 
         return JsonResponse({"ok": True})
 
-    return JsonResponse({"error": "GET not allowed"})
+    return JsonResponse({"error": "GET not allowed"}, status=405)

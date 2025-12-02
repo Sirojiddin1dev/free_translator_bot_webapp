@@ -12,6 +12,7 @@ from aiogram.types import (
 )
 from googletrans import Translator
 from django.conf import settings
+from aiogram.types import Update
 
 
 BOT_TOKEN = "8348560606:AAEx2E_cAnUW6HD_b41YpoagJgpIVYcp2_k"          # <-- TOKEN qo‘ying
@@ -155,7 +156,6 @@ async def on_startup():
     webhook_url = settings.WEBHOOK_URL
     await bot.set_webhook(webhook_url)
 
-# Django view dan chaqiriladigan update processor
 async def process_update(request_body):
     update = Update(**request_body)
     await dp.feed_update(bot, update)
