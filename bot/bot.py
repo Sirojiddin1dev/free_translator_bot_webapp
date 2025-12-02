@@ -1,153 +1,162 @@
 import asyncio
+import json
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
 from aiogram.types import (
     Message,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    WebAppInfo,
     ReplyKeyboardMarkup,
-    KeyboardButton
+    KeyboardButton,
+    WebAppInfo,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup
 )
 from googletrans import Translator
 
-BOT_TOKEN = "8348560606:AAEx2E_cAnUW6HD_b41YpoagJgpIVYcp2_k"
+
+BOT_TOKEN = "8348560606:AAEx2E_cAnUW6HD_b41YpoagJgpIVYcp2_k"          # <-- TOKEN qo‘ying
+WEBAPP_URL = "https://freetranslatorbot-production.up.railway.app/"     # <-- Django WebApp URL
 
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
 
 translator = Translator()
-
-# Foydalanuvchi til yo‘nalishi {user_id: {src: 'uz', dest: 'en'}}
-user_lang = {}
+user_lang = {}   # {user_id: {"src": "uz", "dest": "en"}}
 
 
-# Til tanlash menyusi
+# ------------------------------------
+#  TIL TANLASH MENYUSI
+# ------------------------------------
 def lang_menu():
-    kb = ReplyKeyboardMarkup(
+    return ReplyKeyboardMarkup(
         keyboard=[
             [
-                KeyboardButton(text="🇺🇿 Uzbek → 🇷🇺 Russian"),
-                KeyboardButton(text="🇷🇺 Russian → 🇺🇿 Uzbek"),
+                KeyboardButton("🇺🇿 Uzbek → 🇬🇧 English"),
+                KeyboardButton("🇬🇧 English → 🇺🇿 Uzbek"),
             ],
             [
-                KeyboardButton(text="🇺🇿 Uzbek → 🇬🇧 English"),
-                KeyboardButton(text="🇬🇧 English → 🇺🇿 Uzbek"),
-            ],
-            [
-                KeyboardButton(text="WebApp Tarjimonni ochish")
+                KeyboardButton("🇺🇿 Uzbek → 🇷🇺 Russian"),
+                KeyboardButton("🇷🇺 Russian → 🇺🇿 Uzbek"),
             ]
         ],
         resize_keyboard=True
     )
-    return kb
 
 
-@dp.message(Command("start"))
-async def start_cmd(message: Message):
-
-    # INPUT yoniga chiqadigan WebApp tugma
-    input_webapp = ReplyKeyboardMarkup(
+# ------------------------------------
+#  INPUT YONIGA CHIQADIGAN WEBAPP TUGMA
+# ------------------------------------
+def webapp_keyboard():
+    return ReplyKeyboardMarkup(
         keyboard=[
             [
                 KeyboardButton(
                     text="🌐 WebApp Translator",
-                    web_app=WebAppInfo(url="https://YOUR-DOMAIN.COM")
+                    web_app=WebAppInfo(url=WEBAPP_URL)
                 )
             ]
         ],
         resize_keyboard=True
     )
 
-    # Til tanlash menyusi
-    langs = ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(text="🇺🇿 Uzbek → 🇷🇺 Russian"),
-                KeyboardButton(text="🇷🇺 Russian → 🇺🇿 Uzbek"),
-            ],
-            [
-                KeyboardButton(text="🇺🇿 Uzbek → 🇬🇧 English"),
-                KeyboardButton(text="🇬🇧 English → 🇺🇿 Uzbek"),
-            ],
-        ],
-        resize_keyboard=True
+
+# ------------------------------------
+#  START COMMAND
+# ------------------------------------
+@dp.message(Command("start"))
+async def start(message: Message):
+
+    await message.answer(
+        "Assalomu alaykum! 👋\n"
+        "WebApp orqali ham, bot orqali ham tarjima qilishingiz mumkin.\n\n"
+        "👇 WebApp tugmasi input yonida chiqadi:",
+        reply_markup=webapp_keyboard()
     )
 
     await message.answer(
-        "Tarjima:\nQuyidan WebApp yoki til juftligini tanlang.",
-        reply_markup=input_webapp
+        "👇 Endi til yo‘nalishini tanlang:",
+        reply_markup=lang_menu()
     )
 
-    # Til tanlash menyusi alohida jo‘natiladi
-    await message.answer("Til yo‘nalishini tanlang:", reply_markup=langs)
 
-
-
+# ------------------------------------
+#  HAR QANDAY XABARLAR UCHUN HANDLER
+# ------------------------------------
 @dp.message()
 async def all_messages(message: Message):
+
     user_id = message.from_user.id
 
-    # ==== 1) WebAppdan kelgan tarjima natijasi ====
+    # ------------------------------------
+    #  WEBAPP'DAN KELGAN DATA
+    # ------------------------------------
     if message.web_app_data:
-        result = message.web_app_data.data
-        await message.answer(f"🌐 WebApp tarjimasi:\n\n{result}")
-        return
+        try:
+            data = json.loads(message.web_app_data.data)
 
-    # ==== 2) Til yo‘nalishini tanlash ====
+            # WebApp Translation
+            if data.get("type") == "webapp_translation":
+                text = data.get("text", "")
+                src = data.get("src", "")
+                dest = data.get("dest", "")
+
+                await message.answer(
+                    f"🌐 WebApp tarjimasi:\n\n"
+                    f"📤 From: {src}\n"
+                    f"📥 To: {dest}\n"
+                    f"📝 Matn: {text}"
+                )
+                return
+
+        except Exception:
+            await message.answer(f"WebApp'dan ma'lumot keldi:\n{message.web_app_data.data}")
+            return
+
+    # ------------------------------------
+    #  TIL YO‘NALISHINI TANLASH
+    # ------------------------------------
     if "→" in message.text:
         langs = {
-            "🇺🇿 Uzbek → 🇷🇺 Russian": ("uz", "ru"),
-            "🇷🇺 Russian → 🇺🇿 Uzbek": ("ru", "uz"),
             "🇺🇿 Uzbek → 🇬🇧 English": ("uz", "en"),
             "🇬🇧 English → 🇺🇿 Uzbek": ("en", "uz"),
+            "🇺🇿 Uzbek → 🇷🇺 Russian": ("uz", "ru"),
+            "🇷🇺 Russian → 🇺🇿 Uzbek": ("ru", "uz"),
         }
 
         src, dest = langs[message.text]
         user_lang[user_id] = {"src": src, "dest": dest}
 
-        await message.answer(f"Tanlandi: {message.text}\nEndi tarjima qilinadigan matnni yuboring.")
+        await message.answer(
+            f"✅ Tanlandi: {message.text}\n"
+            f"Endi tarjima qilish uchun matn yuboring."
+        )
         return
 
-    # ==== 3) Til tanlanmagan bo‘lsa → tanlashni so‘rash ====
+    # ------------------------------------
+    #  AGAR YO‘NALISH TANLANMAGAN BO‘LSA
+    # ------------------------------------
     if user_id not in user_lang:
-        await message.answer("⛔ Avval tarjima yo‘nalishini tanlang!", reply_markup=lang_menu())
+        await message.answer("⛔ Avval til yo‘nalishini tanlang!", reply_markup=lang_menu())
         return
 
+    # ------------------------------------
+    #  BOT ICHIDA TARJIMA QILISH
+    # ------------------------------------
     src = user_lang[user_id]["src"]
     dest = user_lang[user_id]["dest"]
 
-    # ==== 4) Oddiy matnni tarjima qilish ====
     try:
         translated = translator.translate(message.text, src=src, dest=dest)
         await message.answer(f"🔄 Tarjima:\n\n{translated.text}")
+
     except Exception as e:
         await message.answer(f"Xato: {e}")
 
-@dp.message()
-async def h(message: Message):
-    if message.web_app_data:
-        data = message.web_app_data.data  # bu string; biz JSON jo'natganmiz
-        # parse JSON:
-        import json
-        try:
-            payload = json.loads(data)
-            if payload.get("type") == "webapp_translation":
-                await message.answer(f"WebApp tarjimasi:\n\n{payload['text']}")
-                return
-        except Exception:
-            # oddiy matn bo'lishi mumkin
-            await message.answer(f"WebAppdan: {data}")
-            return
 
-    # boshqa oddiy xabarlar
-    await message.answer("Siz: " + message.text)
-
-
-
-# BOTNI ISHGA TUSHIRISH
+# ------------------------------------
+#  POLLING ISHGA TUSHURISH
+# ------------------------------------
 async def main():
-    print("Bot ishga tushdi...")
+    print("Bot ishlayapti...")
     await dp.start_polling(bot)
 
 
