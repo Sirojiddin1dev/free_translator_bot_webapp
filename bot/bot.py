@@ -11,6 +11,7 @@ from aiogram.types import (
     InlineKeyboardMarkup
 )
 from googletrans import Translator
+from django.conf import settings
 
 
 BOT_TOKEN = "8348560606:AAEx2E_cAnUW6HD_b41YpoagJgpIVYcp2_k"          # <-- TOKEN qo‘ying
@@ -150,15 +151,11 @@ async def all_messages(message: Message):
 
     except Exception as e:
         await message.answer(f"Xato: {e}")
+async def on_startup():
+    webhook_url = settings.WEBHOOK_URL
+    await bot.set_webhook(webhook_url)
 
-
-# ------------------------------------
-#  POLLING ISHGA TUSHURISH
-# ------------------------------------
-async def main():
-    print("Bot ishlayapti...")
-    await dp.start_polling(bot)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+# Django view dan chaqiriladigan update processor
+async def process_update(request_body):
+    update = Update(**request_body)
+    await dp.feed_update(bot, update)

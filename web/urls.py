@@ -4,4 +4,6 @@ from . import views
 urlpatterns = [
     path("", views.webapp, name="webapp"),
     path("api/translate/", views.translate_api, name="translate_api"),
+    path("bot/webhook/", views.telegram_webhook),
+
 ]

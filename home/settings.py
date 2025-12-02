@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'main.apps.MainConfig',
     'drf_yasg',
-    "whitenoise"
+    "whitenoise",
+    'web.apps.WebConfig'
 ]
 
 MIDDLEWARE = [
@@ -133,3 +134,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 GIZMO_BASE_URL = "https://game.cloudplay.uz/api"
 GIZMO_LOGIN = "cloudplay"
 GIZMO_PASSWORD = "Sshn3twar$"
+WEBHOOK_URL = "https://freetranslatorbot-production.up.railway.app/bot/webhook/"
