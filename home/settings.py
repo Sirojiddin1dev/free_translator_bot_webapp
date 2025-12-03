@@ -39,14 +39,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'main.apps.MainConfig',
     'drf_yasg',
-    "whitenoise",
-    'web.apps.WebConfig'
+    'whitenoise'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # <-- majburiy
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -72,7 +71,7 @@ TEMPLATES = [
     },
 ]
 
-ASGI_APPLICATION = "home.asgi.application"
+WSGI_APPLICATION = 'home.wsgi.application'
 
 
 # Database
@@ -119,14 +118,8 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
-import os
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-
-MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -134,4 +127,3 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 GIZMO_BASE_URL = "https://game.cloudplay.uz/api"
 GIZMO_LOGIN = "cloudplay"
 GIZMO_PASSWORD = "Sshn3twar$"
-WEBHOOK_URL = "https://freetranslatorbot-production.up.railway.app/bot/webhook/"
